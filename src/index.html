@@ -1,22 +1,832 @@
 <!DOCTYPE html>
-<html lang="en">
-    <head>
-        <meta charset="UTF-8" />
-        <link rel="stylesheet" href="styles.css" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>PakePlus App</title>
-        <script type="module" src="/main.js" defer></script>
-    </head>
-
-    <body>
-        <main class="container">
-            <h1>Welcome to PakePlus</h1>
-
-            <form class="row" id="greet-form">
-                <input id="greet-input" placeholder="Enter a name..." />
-                <button type="submit">Greet</button>
-            </form>
-            <p id="greet-msg"></p>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AppStore - 探索精彩应用</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/vue@3.4.24/dist/vue.global.prod.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#165DFF',
+                        secondary: '#FF7D00',
+                        success: '#00B42A',
+                        warning: '#FF7D00',
+                        danger: '#F53F3F',
+                        dark: '#1D2129',
+                        'dark-2': '#4E5969',
+                        'dark-3': '#86909C',
+                        'light-1': '#F2F3F5',
+                        'light-2': '#F7F8FA',
+                        'light-3': '#FFFFFF'
+                    },
+                    fontFamily: {
+                        inter: ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .scrollbar-hide::-webkit-scrollbar {
+                display: none;
+            }
+            .scrollbar-hide {
+                -ms-overflow-style: none;
+                scrollbar-width: none;
+            }
+            .animate-float {
+                animation: float 6s ease-in-out infinite;
+            }
+            .animate-float-delay-1 {
+                animation: float 6s ease-in-out 1s infinite;
+            }
+            .animate-float-delay-2 {
+                animation: float 6s ease-in-out 2s infinite;
+            }
+            .card-hover {
+                transition: transform 0.3s ease, box-shadow 0.3s ease;
+            }
+            .card-hover:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 10px 25px -5px rgba(22, 93, 255, 0.1), 0 10px 10px -5px rgba(22, 93, 255, 0.04);
+            }
+            .text-balance {
+                text-wrap: balance;
+            }
+        }
+        
+        @keyframes float {
+            0% {
+                transform: translateY(0px);
+            }
+            50% {
+                transform: translateY(-15px);
+            }
+            100% {
+                transform: translateY(0px);
+            }
+        }
+    </style>
+</head>
+<body class="font-inter bg-light-2 text-dark antialiased">
+    <div id="app" class="min-h-screen flex flex-col">
+        <!-- 导航栏 -->
+        <header class="fixed top-0 left-0 right-0 z-50 transition-all duration-300" :class="{'bg-white/95 shadow-md': scrollY > 10, 'bg-transparent': scrollY <= 10}">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex items-center justify-between h-16 md:h-20">
+                    <!-- Logo -->
+                    <a href="#" class="flex items-center space-x-2">
+                        <div class="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
+                            <i class="fa-solid fa-app-store text-white text-xl"></i>
+                        </div>
+                        <span class="text-xl font-bold text-dark">AppStore</span>
+                    </a>
+                    
+                    <!-- 导航链接 - 桌面端 -->
+                    <nav class="hidden md:flex items-center space-x-8">
+                        <a href="#" class="text-dark font-medium hover:text-primary transition-colors">首页</a>
+                        <a href="#categories" class="text-dark-2 font-medium hover:text-primary transition-colors">分类</a>
+                        <a href="#trending" class="text-dark-2 font-medium hover:text-primary transition-colors">热门推荐</a>
+                        <a href="#new" class="text-dark-2 font-medium hover:text-primary transition-colors">最新上架</a>
+                    </nav>
+                    
+                    <!-- 搜索框和用户菜单 -->
+                    <div class="flex items-center space-x-4">
+                        <!-- 搜索按钮 -->
+                        <button class="md:hidden text-dark-2 hover:text-primary transition-colors" @click="toggleSearch">
+                            <i class="fa-solid fa-search text-xl"></i>
+                        </button>
+                        
+                        <!-- 搜索框 - 桌面端 -->
+                        <div class="hidden md:flex items-center bg-light-1 rounded-full px-4 py-2 w-64 lg:w-80 transition-all duration-300 focus-within:ring-2 focus-within:ring-primary/20">
+                            <i class="fa-solid fa-search text-dark-3 mr-2"></i>
+                            <input type="text" placeholder="搜索应用..." v-model="searchQuery" class="bg-transparent w-full outline-none text-dark placeholder:text-dark-3">
+                        </div>
+                        
+                        <!-- 用户菜单 -->
+                        <div class="relative">
+                            <button class="w-10 h-10 rounded-full bg-light-1 flex items-center justify-center hover:bg-light-2 transition-colors" @click="toggleUserMenu">
+                                <img src="https://picsum.photos/200/200?random=1" alt="用户头像" class="w-10 h-10 rounded-full object-cover">
+                            </button>
+                            
+                            <!-- 用户菜单下拉框 -->
+                            <div class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-2 z-50 transform origin-top-right transition-all duration-200 ease-in-out" :class="{'opacity-0 scale-95 pointer-events-none': !userMenuOpen, 'opacity-100 scale-100': userMenuOpen}">
+                                <a href="#" class="block px-4 py-2 text-sm text-dark-2 hover:bg-light-1 hover:text-primary transition-colors">
+                                    <i class="fa-solid fa-user mr-2"></i>个人中心
+                                </a>
+                                <a href="#" class="block px-4 py-2 text-sm text-dark-2 hover:bg-light-1 hover:text-primary transition-colors">
+                                    <i class="fa-solid fa-download mr-2"></i>我的下载
+                                </a>
+                                <a href="#" class="block px-4 py-2 text-sm text-dark-2 hover:bg-light-1 hover:text-primary transition-colors">
+                                    <i class="fa-solid fa-heart mr-2"></i>我的收藏
+                                </a>
+                                <div class="border-t border-light-1 my-1"></div>
+                                <a href="#" class="block px-4 py-2 text-sm text-danger hover:bg-light-1 transition-colors">
+                                    <i class="fa-solid fa-sign-out-alt mr-2"></i>退出登录
+                                </a>
+                            </div>
+                        </div>
+                        
+                        <!-- 移动端菜单按钮 -->
+                        <button class="md:hidden text-dark-2 hover:text-primary transition-colors" @click="toggleMobileMenu">
+                            <i class="fa-solid fa-bars text-xl"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 搜索框 - 移动端 -->
+            <div class="md:hidden px-4 pb-3 bg-white/95" :class="{'block': searchOpen, 'hidden': !searchOpen}">
+                <div class="flex items-center bg-light-1 rounded-full px-4 py-2 w-full transition-all duration-300 focus-within:ring-2 focus-within:ring-primary/20">
+                    <i class="fa-solid fa-search text-dark-3 mr-2"></i>
+                    <input type="text" placeholder="搜索应用..." v-model="searchQuery" class="bg-transparent w-full outline-none text-dark placeholder:text-dark-3">
+                </div>
+            </div>
+            
+            <!-- 移动端导航菜单 -->
+            <div class="md:hidden bg-white/95 shadow-md" :class="{'block': mobileMenuOpen, 'hidden': !mobileMenuOpen}">
+                <div class="container mx-auto px-4 py-3 space-y-1">
+                    <a href="#" class="block py-2 text-dark font-medium">首页</a>
+                    <a href="#categories" class="block py-2 text-dark-2 hover:text-primary transition-colors">分类</a>
+                    <a href="#trending" class="block py-2 text-dark-2 hover:text-primary transition-colors">热门推荐</a>
+                    <a href="#new" class="block py-2 text-dark-2 hover:text-primary transition-colors">最新上架</a>
+                </div>
+            </div>
+        </header>
+        
+        <!-- 主内容 -->
+        <main class="flex-grow pt-16 md:pt-20">
+            <!-- 英雄区域 -->
+            <section class="relative overflow-hidden bg-gradient-to-br from-primary/90 to-primary py-16 md:py-24">
+                <div class="absolute inset-0 overflow-hidden">
+                    <div class="absolute top-0 right-0 w-full h-full opacity-10">
+                        <div class="absolute top-10 right-10 w-40 h-40 rounded-full bg-white animate-float"></div>
+                        <div class="absolute bottom-20 left-20 w-60 h-60 rounded-full bg-white animate-float-delay-1"></div>
+                        <div class="absolute top-1/3 left-1/4 w-32 h-32 rounded-full bg-white animate-float-delay-2"></div>
+                    </div>
+                </div>
+                
+                <div class="container mx-auto px-4 sm:px-6 lg:px-8 relative">
+                    <div class="max-w-4xl mx-auto text-center">
+                        <h1 class="text-[clamp(2.5rem,5vw,4rem)] font-bold text-white leading-tight mb-6">
+                            发现最棒的<span class="text-secondary">移动应用</span>
+                        </h1>
+                        <p class="text-[clamp(1rem,2vw,1.25rem)] text-white/90 mb-8 max-w-2xl mx-auto text-balance">
+                            从实用工具到游戏娱乐，我们的应用商店拥有超过 10,000+ 精选应用，满足你的一切需求
+                        </p>
+                        <div class="flex flex-col sm:flex-row justify-center gap-4">
+                            <a href="#featured" class="px-8 py-3 bg-white text-primary font-semibold rounded-full shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
+                                浏览应用
+                            </a>
+                            <a href="#categories" class="px-8 py-3 bg-transparent border-2 border-white text-white font-semibold rounded-full hover:bg-white/10 transition-all duration-300">
+                                探索分类
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- 分类浏览 -->
+            <section id="categories" class="py-16 bg-white">
+                <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+                    <div class="text-center mb-12">
+                        <h2 class="text-[clamp(1.5rem,3vw,2.5rem)] font-bold text-dark mb-4">按分类浏览</h2>
+                        <p class="text-dark-2 max-w-2xl mx-auto">找到适合你需求的应用类别，从生产力工具到游戏，应有尽有</p>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 md:gap-6">
+                        <!-- 分类卡片 -->
+                        <div class="category-card card-hover bg-light-2 rounded-xl p-5 text-center cursor-pointer" @click="filterByCategory('all')">
+                            <div class="w-14 h-14 mx-auto mb-3 rounded-full bg-primary/10 flex items-center justify-center">
+                                <i class="fa-solid fa-th-large text-primary text-xl"></i>
+                            </div>
+                            <h3 class="font-medium text-dark">全部</h3>
+                        </div>
+                        
+                        <div class="category-card card-hover bg-light-2 rounded-xl p-5 text-center cursor-pointer" @click="filterByCategory('games')">
+                            <div class="w-14 h-14 mx-auto mb-3 rounded-full bg-secondary/10 flex items-center justify-center">
+                                <i class="fa-solid fa-gamepad text-secondary text-xl"></i>
+                            </div>
+                            <h3 class="font-medium text-dark">游戏</h3>
+                        </div>
+                        
+                        <div class="category-card card-hover bg-light-2 rounded-xl p-5 text-center cursor-pointer" @click="filterByCategory('productivity')">
+                            <div class="w-14 h-14 mx-auto mb-3 rounded-full bg-success/10 flex items-center justify-center">
+                                <i class="fa-solid fa-briefcase text-success text-xl"></i>
+                            </div>
+                            <h3 class="font-medium text-dark">生产力</h3>
+                        </div>
+                        
+                        <div class="category-card card-hover bg-light-2 rounded-xl p-5 text-center cursor-pointer" @click="filterByCategory('entertainment')">
+                            <div class="w-14 h-14 mx-auto mb-3 rounded-full bg-warning/10 flex items-center justify-center">
+                                <i class="fa-solid fa-film text-warning text-xl"></i>
+                            </div>
+                            <h3 class="font-medium text-dark">娱乐</h3>
+                        </div>
+                        
+                        <div class="category-card card-hover bg-light-2 rounded-xl p-5 text-center cursor-pointer" @click="filterByCategory('education')">
+                            <div class="w-14 h-14 mx-auto mb-3 rounded-full bg-primary/10 flex items-center justify-center">
+                                <i class="fa-solid fa-book text-primary text-xl"></i>
+                            </div>
+                            <h3 class="font-medium text-dark">教育</h3>
+                        </div>
+                        
+                        <div class="category-card card-hover bg-light-2 rounded-xl p-5 text-center cursor-pointer" @click="filterByCategory('health')">
+                            <div class="w-14 h-14 mx-auto mb-3 rounded-full bg-danger/10 flex items-center justify-center">
+                                <i class="fa-solid fa-heartbeat text-danger text-xl"></i>
+                            </div>
+                            <h3 class="font-medium text-dark">健康</h3>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- 特色应用 -->
+            <section id="featured" class="py-16 bg-light-2">
+                <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+                    <div class="flex flex-col md:flex-row md:items-end justify-between mb-12">
+                        <div>
+                            <h2 class="text-[clamp(1.5rem,3vw,2.5rem)] font-bold text-dark mb-4">特色应用</h2>
+                            <p class="text-dark-2 max-w-2xl">我们精心挑选的优质应用，为你带来卓越体验</p>
+                        </div>
+                        <div class="mt-4 md:mt-0">
+                            <a href="#" class="text-primary font-medium hover:text-primary/80 transition-colors flex items-center">
+                                查看全部 <i class="fa-solid fa-arrow-right ml-2"></i>
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
+                        <!-- 应用卡片 -->
+                        <div class="app-card bg-white rounded-2xl overflow-hidden shadow-md card-hover" v-for="app in featuredApps" :key="app.id">
+                            <div class="relative h-48">
+                                <img :src="app.banner" alt="应用封面" class="w-full h-full object-cover">
+                                <div class="absolute top-4 right-4 bg-white/90 backdrop-blur-sm rounded-full px-3 py-1 text-xs font-medium text-primary">
+                                    特色
+                                </div>
+                            </div>
+                            <div class="p-6">
+                                <div class="flex items-start justify-between">
+                                    <div class="flex items-center">
+                                        <img :src="app.icon" alt="应用图标" class="w-12 h-12 rounded-xl mr-3">
+                                        <div>
+                                            <h3 class="font-semibold text-dark text-lg">{{ app.name }}</h3>
+                                            <p class="text-dark-3 text-sm mt-1">{{ app.developer }}</p>
+                                        </div>
+                                    </div>
+                                    <span class="text-lg font-bold text-dark">{{ app.price }}</span>
+                                </div>
+                                
+                                <div class="mt-4 flex items-center">
+                                    <div class="flex items-center">
+                                        <i class="fa-solid fa-star text-warning"></i>
+                                        <i class="fa-solid fa-star text-warning"></i>
+                                        <i class="fa-solid fa-star text-warning"></i>
+                                        <i class="fa-solid fa-star text-warning"></i>
+                                        <i class="fa-solid fa-star-half-stroke text-warning"></i>
+                                        <span class="text-dark-3 text-sm ml-2">{{ app.rating }}</span>
+                                    </div>
+                                    <span class="text-dark-3 text-sm ml-4">{{ app.reviews }} 评价</span>
+                                </div>
+                                
+                                <p class="mt-4 text-dark-2 text-sm line-clamp-2">{{ app.description }}</p>
+                                
+                                <div class="mt-6 flex items-center justify-between">
+                                    <div class="flex -space-x-2">
+                                        <img src="https://picsum.photos/200/200?random=10" alt="用户头像" class="w-8 h-8 rounded-full border-2 border-white">
+                                        <img src="https://picsum.photos/200/200?random=11" alt="用户头像" class="w-8 h-8 rounded-full border-2 border-white">
+                                        <img src="https://picsum.photos/200/200?random=12" alt="用户头像" class="w-8 h-8 rounded-full border-2 border-white">
+                                        <div class="w-8 h-8 rounded-full bg-light-1 border-2 border-white flex items-center justify-center text-xs font-medium text-dark-3">
+                                            +2k
+                                        </div>
+                                    </div>
+                                    <button class="px-4 py-2 bg-primary text-white rounded-lg font-medium hover:bg-primary/90 transition-colors" @click="showAppDetails(app)">
+                                        获取
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- 热门推荐 -->
+            <section id="trending" class="py-16 bg-white">
+                <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+                    <div class="flex flex-col md:flex-row md:items-end justify-between mb-12">
+                        <div>
+                            <h2 class="text-[clamp(1.5rem,3vw,2.5rem)] font-bold text-dark mb-4">热门推荐</h2>
+                            <p class="text-dark-2 max-w-2xl">当前最受欢迎的应用，千万用户的选择</p>
+                        </div>
+                        <div class="mt-4 md:mt-0">
+                            <a href="#" class="text-primary font-medium hover:text-primary/80 transition-colors flex items-center">
+                                查看全部 <i class="fa-solid fa-arrow-right ml-2"></i>
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <div class="relative">
+                        <div class="overflow-x-auto scrollbar-hide py-4">
+                            <div class="flex space-x-6 min-w-max px-2">
+                                <!-- 应用卡片 -->
+                                <div class="trending-app-card w-72 bg-light-2 rounded-2xl overflow-hidden card-hover" v-for="app in trendingApps" :key="app.id">
+                                    <div class="p-5">
+                                        <div class="flex items-start justify-between">
+                                            <div class="flex">
+                                                <img :src="app.icon" alt="应用图标" class="w-14 h-14 rounded-xl mr-3">
+                                                <div>
+                                                    <h3 class="font-semibold text-dark text-lg">{{ app.name }}</h3>
+                                                    <p class="text-dark-3 text-sm mt-1">{{ app.developer }}</p>
+                                                </div>
+                                            </div>
+                                            <span class="text-lg font-bold text-dark">{{ app.price }}</span>
+                                        </div>
+                                        
+                                        <div class="mt-4 flex items-center">
+                                            <div class="flex items-center">
+                                                <i class="fa-solid fa-star text-warning"></i>
+                                                <i class="fa-solid fa-star text-warning"></i>
+                                                <i class="fa-solid fa-star text-warning"></i>
+                                                <i class="fa-solid fa-star text-warning"></i>
+                                                <i class="fa-solid fa-star text-warning"></i>
+                                                <span class="text-dark-3 text-sm ml-2">{{ app.rating }}</span>
+                                            </div>
+                                            <span class="text-dark-3 text-sm ml-4">{{ app.reviews }} 评价</span>
+                                        </div>
+                                        
+                                        <p class="mt-4 text-dark-2 text-sm line-clamp-2">{{ app.description }}</p>
+                                        
+                                        <div class="mt-6 flex items-center justify-between">
+                                            <div class="flex items-center">
+                                                <i class="fa-solid fa-download text-primary mr-1"></i>
+                                                <span class="text-dark-3 text-sm">{{ app.downloads }}</span>
+                                            </div>
+                                            <button class="px-4 py-2 bg-primary text-white rounded-lg font-medium hover:bg-primary/90 transition-colors" @click="showAppDetails(app)">
+                                                获取
+                                            </button>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="h-40">
+                                        <img :src="app.banner" alt="应用截图" class="w-full h-full object-cover">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 滚动控制按钮 -->
+                        <button class="absolute left-0 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white shadow-md flex items-center justify-center text-dark-2 hover:text-primary transition-colors z-10" @click="scrollTrending(-1)">
+                            <i class="fa-solid fa-chevron-left"></i>
+                        </button>
+                        <button class="absolute right-0 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white shadow-md flex items-center justify-center text-dark-2 hover:text-primary transition-colors z-10" @click="scrollTrending(1)">
+                            <i class="fa-solid fa-chevron-right"></i>
+                        </button>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- 最新上架 -->
+            <section id="new" class="py-16 bg-light-2">
+                <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+                    <div class="flex flex-col md:flex-row md:items-end justify-between mb-12">
+                        <div>
+                            <h2 class="text-[clamp(1.5rem,3vw,2.5rem)] font-bold text-dark mb-4">最新上架</h2>
+                            <p class="text-dark-2 max-w-2xl">最近更新和新发布的精彩应用</p>
+                        </div>
+                        <div class="mt-4 md:mt-0">
+                            <a href="#" class="text-primary font-medium hover:text-primary/80 transition-colors flex items-center">
+                                查看全部 <i class="fa-solid fa-arrow-right ml-2"></i>
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                        <!-- 应用卡片 -->
+                        <div class="new-app-card bg-white rounded-xl overflow-hidden shadow-sm card-hover" v-for="app in newApps" :key="app.id">
+                            <div class="p-4">
+                                <div class="flex items-start">
+                                    <img :src="app.icon" alt="应用图标" class="w-12 h-12 rounded-xl mr-3">
+                                    <div>
+                                        <h3 class="font-semibold text-dark text-base line-clamp-1">{{ app.name }}</h3>
+                                        <p class="text-dark-3 text-xs mt-1 line-clamp-1">{{ app.developer }}</p>
+                                        <div class="mt-2 flex items-center">
+                                            <div class="flex items-center">
+                                                <i class="fa-solid fa-star text-warning text-xs"></i>
+                                                <span class="text-dark-3 text-xs ml-1">{{ app.rating }}</span>
+                                            </div>
+                                            <span class="text-dark-3 text-xs ml-3">{{ app.reviews }} 评价</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="h-36">
+                                <img :src="app.banner" alt="应用截图" class="w-full h-full object-cover">
+                            </div>
+                            
+                            <div class="p-4 flex items-center justify-between">
+                                <span class="text-dark font-medium">{{ app.price }}</span>
+                                <button class="px-3 py-1.5 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors" @click="showAppDetails(app)">
+                                    获取
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- 应用详情模态框 -->
+            <div class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center transition-opacity duration-300" :class="{'opacity-0 pointer-events-none': !appDetailsOpen, 'opacity-100': appDetailsOpen}" @click.self="closeAppDetails">
+                <div class="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-auto transform transition-all duration-300" :class="{'scale-95 opacity-0': !appDetailsOpen, 'scale-100 opacity-100': appDetailsOpen}">
+                    <div class="relative">
+                        <div class="h-64 md:h-80">
+                            <img :src="selectedApp.banner" alt="应用封面" class="w-full h-full object-cover">
+                            <div class="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent"></div>
+                            <button class="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center text-white hover:bg-white/30 transition-colors" @click="closeAppDetails">
+                                <i class="fa-solid fa-times"></i>
+                            </button>
+                        </div>
+                        
+                        <div class="p-6 md:p-8 -mt-16 relative">
+                            <div class="flex items-start">
+                                <img :src="selectedApp.icon" alt="应用图标" class="w-16 h-16 md:w-20 md:h-20 rounded-xl border-4 border-white shadow-md">
+                                <div class="ml-4 md:ml-6">
+                                    <h2 class="font-bold text-dark text-xl md:text-2xl">{{ selectedApp.name }}</h2>
+                                    <p class="text-dark-3 text-sm mt-1">{{ selectedApp.developer }}</p>
+                                    
+                                    <div class="mt-3 flex flex-wrap items-center gap-2">
+                                        <div class="flex items-center bg-light-2 rounded-full px-3 py-1">
+                                            <i class="fa-solid fa-star text-warning mr-1"></i>
+                                            <span class="text-dark text-sm">{{ selectedApp.rating }}</span>
+                                        </div>
+                                        <div class="flex items-center bg-light-2 rounded-full px-3 py-1">
+                                            <i class="fa-solid fa-download text-primary mr-1"></i>
+                                            <span class="text-dark text-sm">{{ selectedApp.downloads }}</span>
+                                        </div>
+                                        <div class="flex items-center bg-light-2 rounded-full px-3 py-1">
+                                            <i class="fa-solid fa-tag text-success mr-1"></i>
+                                            <span class="text-dark text-sm">{{ selectedApp.category }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="ml-auto mt-auto">
+                                    <button class="px-6 py-3 bg-primary text-white rounded-xl font-medium hover:bg-primary/90 transition-colors">
+                                        获取
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div class="mt-8">
+                                <h3 class="font-semibold text-dark text-lg mb-4">应用介绍</h3>
+                                <p class="text-dark-2 leading-relaxed">{{ selectedApp.fullDescription }}</p>
+                            </div>
+                            
+                            <div class="mt-8">
+                                <h3 class="font-semibold text-dark text-lg mb-4">应用截图</h3>
+                                <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                                    <img v-for="(screenshot, index) in selectedApp.screenshots" :key="index" :src="screenshot" alt="应用截图" class="w-full h-40 object-cover rounded-xl">
+                                </div>
+                            </div>
+                            
+                            <div class="mt-8">
+                                <h3 class="font-semibold text-dark text-lg mb-4">用户评价</h3>
+                                <div class="space-y-4">
+                                    <div class="bg-light-2 rounded-xl p-4">
+                                        <div class="flex items-center">
+                                            <img src="https://picsum.photos/200/200?random=20" alt="用户头像" class="w-10 h-10 rounded-full">
+                                            <div class="ml-3">
+                                                <h4 class="font-medium text-dark">张明</h4>
+                                                <div class="flex items-center mt-1">
+                                                    <i class="fa-solid fa-star text-warning text-xs"></i>
+                                                    <i class="fa-solid fa-star text-warning text-xs"></i>
+                                                    <i class="fa-solid fa-star text-warning text-xs"></i>
+                                                    <i class="fa-solid fa-star text-warning text-xs"></i>
+                                                    <i class="fa-solid fa-star text-warning text-xs"></i>
+                                                </div>
+                                            </div>
+                                            <span class="ml-auto text-dark-3 text-sm">2天前</span>
+                                        </div>
+                                        <p class="mt-3 text-dark-2 text-sm">这款应用真的很棒！界面简洁，功能强大，完全满足了我的需求。开发者团队的更新也很及时，强烈推荐！</p>
+                                    </div>
+                                    
+                                    <div class="bg-light-2 rounded-xl p-4">
+                                        <div class="flex items-center">
+                                            <img src="https://picsum.photos/200/200?random=21" alt="用户头像" class="w-10 h-10 rounded-full">
+                                            <div class="ml-3">
+                                                <h4 class="font-medium text-dark">李华</h4>
+                                                <div class="flex items-center mt-1">
+                                                    <i class="fa-solid fa-star text-warning text-xs"></i>
+                                                    <i class="fa-solid fa-star text-warning text-xs"></i>
+                                                    <i class="fa-solid fa-star text-warning text-xs"></i>
+                                                    <i class="fa-solid fa-star text-warning text-xs"></i>
+                                                    <i class="fa-solid fa-star-half-stroke text-warning text-xs"></i>
+                                                </div>
+                                            </div>
+                                            <span class="ml-auto text-dark-3 text-sm">1周前</span>
+                                        </div>
+                                        <p class="mt-3 text-dark-2 text-sm">使用体验很好，功能丰富但不复杂，很容易上手。唯一的小缺点是有时候会有轻微卡顿，希望后续版本能优化。</p>
+                                    </div>
+                                </div>
+                                
+                                <button class="mt-4 text-primary font-medium hover:text-primary/80 transition-colors">
+                                    查看全部评价 <i class="fa-solid fa-arrow-right ml-1"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </main>
-    </body>
-</html>
+        
+        <!-- 页脚 -->
+        <footer class="bg-dark text-white pt-16 pb-8">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                    <div>
+                        <div class="flex items-center space-x-2 mb-6">
+                            <div class="w-10 h-10 rounded-xl bg-white flex items-center justify-center">
+                                <i class="fa-solid fa-app-store text-primary text-xl"></i>
+                            </div>
+                            <span class="text-xl font-bold text-white">AppStore</span>
+                        </div>
+                        <p class="text-white/70 mb-6">发现最棒的移动应用，从实用工具到游戏娱乐，满足你的一切需求。</p>
+                        <div class="flex space-x-4">
+                            <a href="#" class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-primary transition-colors">
+                                <i class="fa-brands fa-facebook-f"></i>
+                            </a>
+                            <a href="#" class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-primary transition-colors">
+                                <i class="fa-brands fa-twitter"></i>
+                            </a>
+                            <a href="#" class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-primary transition-colors">
+                                <i class="fa-brands fa-instagram"></i>
+                            </a>
+                            <a href="#" class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-primary transition-colors">
+                                <i class="fa-brands fa-linkedin-in"></i>
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <h3 class="text-lg font-semibold mb-6">快速链接</h3>
+                        <ul class="space-y-3">
+                            <li><a href="#" class="text-white/70 hover:text-white transition-colors">首页</a></li>
+                            <li><a href="#featured" class="text-white/70 hover:text-white transition-colors">特色应用</a></li>
+                            <li><a href="#categories" class="text-white/70 hover:text-white transition-colors">应用分类</a></li>
+                            <li><a href="#trending" class="text-white/70 hover:text-white transition-colors">热门推荐</a></li>
+                            <li><a href="#new" class="text-white/70 hover:text-white transition-colors">最新上架</a></li>
+                        </ul>
+                    </div>
+                    
+                    <div>
+                        <h3 class="text-lg font-semibold mb-6">支持</h3>
+                        <ul class="space-y-3">
+                            <li><a href="#" class="text-white/70 hover:text-white transition-colors">帮助中心</a></li>
+                            <li><a href="#" class="text-white/70 hover:text-white transition-colors">联系我们</a></li>
+                            <li><a href="#" class="text-white/70 hover:text-white transition-colors">隐私政策</a></li>
+                            <li><a href="#" class="text-white/70 hover:text-white transition-colors">使用条款</a></li>
+                            <li><a href="#" class="text-white/70 hover:text-white transition-colors">开发者中心</a></li>
+                        </ul>
+                    </div>
+                    
+                    <div>
+                        <h3 class="text-lg font-semibold mb-6">订阅更新</h3>
+                        <p class="text-white/70 mb-4">订阅我们的通讯，获取最新应用和独家优惠信息</p>
+                        <form class="mb-4">
+                            <div class="flex">
+                                <input type="email" placeholder="你的邮箱地址" class="bg-white/10 text-white placeholder-white/50 rounded-l-lg px-4 py-3 w-full outline-none focus:ring-2 focus:ring-primary">
+                                <button type="submit" class="bg-primary text-white rounded-r-lg px-4 hover:bg-primary/90 transition-colors">
+                                    订阅
+                                </button>
+                            </div>
+                        </form>
+                        <p class="text-white/50 text-sm">我们尊重你的隐私，不会发送垃圾邮件</p>
+                    </div>
+                </div>
+                
+                <div class="border-t border-white/10 mt-12 pt-8 flex flex-col md:flex-row justify-between items-center">
+                    <p class="text-white/50 text-sm">© 2025 AppStore. 保留所有权利</p>
+                    <div class="flex space-x-6 mt-4 md:mt-0">
+                        <a href="#" class="text-white/50 hover:text-white text-sm transition-colors">隐私政策</a>
+                        <a href="#" class="text-white/50 hover:text-white text-sm transition-colors">使用条款</a>
+                        <a href="#" class="text-white/50 hover:text-white text-sm transition-colors">Cookie 设置</a>
+                    </div>
+                </div>
+            </div>
+        </footer>
+    </div>
+    
+    <script>
+        const app = Vue.createApp({
+            data() {
+                return {
+                    scrollY: 0,
+                    mobileMenuOpen: false,
+                    searchOpen: false,
+                    userMenuOpen: false,
+                    searchQuery: '',
+                    currentCategory: 'all',
+                    appDetailsOpen: false,
+                    selectedApp: {},
+                    apps: [
+                        {
+                            id: 1,
+                            name: "超级游戏王",
+                            icon: "https://picsum.photos/200/200?random=1",
+                            banner: "https://picsum.photos/800/400?random=1",
+                            developer: "游戏工作室",
+                            price: "¥30.00",
+                            rating: "4.8",
+                            reviews: "2.5k",
+                            downloads: "1M+",
+                            category: "游戏",
+                            description: "一款令人上瘾的角色扮演游戏，拥有精美画面和丰富剧情",
+                            fullDescription: "超级游戏王是一款令人上瘾的角色扮演游戏，拥有精美画面和丰富剧情。玩家可以在游戏中探索广阔的世界，结交伙伴，完成任务，提升等级并收集强大的装备。游戏内有多种职业可供选择，每个职业都有独特的技能和玩法。无论是单人冒险还是组队挑战，都能带给你极致的游戏体验。",
+                            screenshots: [
+                                "https://picsum.photos/600/400?random=11",
+                                "https://picsum.photos/600/400?random=12",
+                                "https://picsum.photos/600/400?random=13"
+                            ]
+                        },
+                        {
+                            id: 2,
+                            name: "办公助手",
+                            icon: "https://picsum.photos/200/200?random=2",
+                            banner: "https://picsum.photos/800/400?random=2",
+                            developer: "效率科技",
+                            price: "免费",
+                            rating: "4.9",
+                            reviews: "3.2k",
+                            downloads: "2M+",
+                            category: "生产力",
+                            description: "一站式办公解决方案，提高工作效率50%以上",
+                            fullDescription: "办公助手是一款一站式办公解决方案，集成了文档编辑、表格制作、演示文稿、日程管理等多种功能。它具有简洁直观的界面，强大的协作功能，让你可以与团队成员实时共享和编辑文档。无论是在办公室还是外出办公，都能轻松应对各种工作需求，提高工作效率50%以上。",
+                            screenshots: [
+                                "https://picsum.photos/600/400?random=14",
+                                "https://picsum.photos/600/400?random=15",
+                                "https://picsum.photos/600/400?random=16"
+                            ]
+                        },
+                        {
+                            id: 3,
+                            name: "音乐无限",
+                            icon: "https://picsum.photos/200/200?random=3",
+                            banner: "https://picsum.photos/800/400?random=3",
+                            developer: "音乐科技",
+                            price: "¥15.00/月",
+                            rating: "4.7",
+                            reviews: "1.8k",
+                            downloads: "1.5M+",
+                            category: "娱乐",
+                            description: "拥有海量音乐库，高品质音质，个性化推荐",
+                            fullDescription: "音乐无限是一款专业的音乐播放应用，拥有海量正版音乐库，覆盖全球各种音乐风格。它提供高品质音质，支持在线播放和离线下载，让你随时随地享受音乐。应用内的个性化推荐系统能够根据你的听歌习惯，为你推荐符合你口味的音乐和歌单。此外，它还支持多设备同步，让你的音乐体验更加连贯。",
+                            screenshots: [
+                                "https://picsum.photos/600/400?random=17",
+                                "https://picsum.photos/600/400?random=18",
+                                "https://picsum.photos/600/400?random=19"
+                            ]
+                        },
+                        {
+                            id: 4,
+                            name: "英语学习",
+                            icon: "https://picsum.photos/200/200?random=4",
+                            banner: "https://picsum.photos/800/400?random=4",
+                            developer: "教育科技",
+                            price: "免费",
+                            rating: "4.6",
+                            reviews: "2.1k",
+                            downloads: "3M+",
+                            category: "教育",
+                            description: "从零基础到流利口语，全方位提升英语能力",
+                            fullDescription: "英语学习是一款专为非英语母语者设计的学习应用，从零基础到流利口语，全方位提升你的英语能力。应用内包含丰富的课程内容，包括听力、口语、阅读、写作等多个方面。它采用互动式学习方式，让你在实践中提高英语水平。此外，应用还提供实时语音评测功能，帮助你纠正发音，提高口语表达能力。",
+                            screenshots: [
+                                "https://picsum.photos/600/400?random=22",
+                                "https://picsum.photos/600/400?random=23",
+                                "https://picsum.photos/600/400?random=24"
+                            ]
+                        },
+                        {
+                            id: 5,
+                            name: "健康追踪",
+                            icon: "https://picsum.photos/200/200?random=5",
+                            banner: "https://picsum.photos/800/400?random=5",
+                            developer: "健康科技",
+                            price: "免费",
+                            rating: "4.9",
+                            reviews: "4.3k",
+                            downloads: "5M+",
+                            category: "健康",
+                            description: "全方位健康管理，帮助你保持良好生活习惯",
+                            fullDescription: "健康追踪是一款全方位的健康管理应用，帮助你记录和管理健康数据，保持良好的生活习惯。它可以连接各种健康设备，自动同步你的运动、睡眠、心率等数据，并生成详细的分析报告。应用内还提供个性化的健康建议和锻炼计划，根据你的身体状况和目标，为你量身定制健康方案。",
+                            screenshots: [
+                                "https://picsum.photos/600/400?random=25",
+                                "https://picsum.photos/600/400?random=26",
+                                "https://picsum.photos/600/400?random=27"
+                            ]
+                        },
+                        {
+                            id: 6,
+                            name: "视频播放器",
+                            icon: "https://picsum.photos/200/200?random=6",
+                            banner: "https://picsum.photos/800/400?random=6",
+                            developer: "媒体科技",
+                            price: "¥20.00",
+                            rating: "4.7",
+                            reviews: "1.9k",
+                            downloads: "1.2M+",
+                            category: "娱乐",
+                            description: "支持多种格式，高清播放，界面简洁美观",
+                            fullDescription: "视频播放器是一款功能强大的视频播放应用，支持多种视频格式，包括MP4、AVI、MKV、FLV等。它具有高清播放能力，支持字幕显示、播放速度调节等功能。应用界面简洁美观，操作简单易用，让你可以专注于视频内容。此外，它还支持视频文件管理和在线视频搜索功能，满足你的各种观看需求。",
+                            screenshots: [
+                                "https://picsum.photos/600/400?random=28",
+                                "https://picsum.photos/600/400?random=29",
+                                "https://picsum.photos/600/400?random=30"
+                            ]
+                        }
+                    ]
+                }
+            },
+            computed: {
+                featuredApps() {
+                    return this.filteredApps.slice(0, 3);
+                },
+                trendingApps() {
+                    return this.filteredApps.slice(0, 5);
+                },
+                newApps() {
+                    return this.filteredApps.slice(0, 8);
+                },
+                filteredApps() {
+                    if (this.currentCategory === 'all') {
+                        return this.apps;
+                    }
+                    return this.apps.filter(app => app.category.toLowerCase() === this.currentCategory);
+                }
+            },
+            mounted() {
+                window.addEventListener('scroll', this.handleScroll);
+            },
+            beforeUnmount() {
+                window.removeEventListener('scroll', this.handleScroll);
+            },
+            methods: {
+                handleScroll() {
+                    this.scrollY = window.scrollY;
+                },
+                toggleMobileMenu() {
+                    this.mobileMenuOpen = !this.mobileMenuOpen;
+                    this.searchOpen = false;
+                    this.userMenuOpen = false;
+                },
+                toggleSearch() {
+                    this.searchOpen = !this.searchOpen;
+                    this.mobileMenuOpen = false;
+                    this.userMenuOpen = false;
+                },
+                toggleUserMenu() {
+                    this.userMenuOpen = !this.userMenuOpen;
+                    this.mobileMenuOpen = false;
+                    this.searchOpen = false;
+                },
+                filterByCategory(category) {
+                    this.currentCategory = category;
+                    // 平滑滚动到应用展示区域
+                    document.getElementById('featured').scrollIntoView({
+                        behavior: 'smooth'
+                    });
+                },
+                scrollTrending(direction) {
+                    const container = document.querySelector('.overflow-x-auto');
+                    const scrollAmount = direction > 0 ? 300 : -300;
+                    container.scrollBy({
+                        left: scrollAmount,
+                        behavior: 'smooth'
+                    });
+                },
+                showAppDetails(app) {
+                    this.selectedApp = app;
+                    this.appDetailsOpen = true;
+                    document.body.style.overflow = 'hidden';
+                },
+                closeAppDetails() {
+                    this.appDetailsOpen = false;
+                    document.body.style.overflow = '';
+                }
+            }
+        });
+        
+        app.mount('#app');
+    </script>
+</body>
+</html>    
